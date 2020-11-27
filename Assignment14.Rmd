@@ -1,0 +1,62 @@
+---
+title: "Assignment14"
+author: "James Brock"
+date: "26/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Part 1
+1) A measurement error is the difference between the measure value of a quantity and its true value. The measured quantity is usually data about a variable we are interested in etc. This type of error can occur often, especially with more human involvement. An example of this could include rounding to one decimal place, which subsequently discards all values past this point. On an individual level this is usually no problem but over very large datasets a lot of information can be lost.  
+2) Selection bias occurs when the data included in the analysis mis-represents the underlying population of interest. More properly it is the bias introduced by the selection of individuals, groups or data for analysis in such a way that proper randomization is not achieved, thereby ensuring that the sample obtained is not representative of the population intended to be analyzed. Subsets of this bias include: Sample bias, Self selection bias, Attrition bias, Post-hoc selection. If users of a study are asked to complete a series of surveys and are initially enthusiast to help, after a while they may get bored and want to stop so will either give up completing them or completing them in such a way that honest results are not reported, this would be an example of attrition bias.
+
+3) When we are trying to understand the causal relationship between x and y, if indeed one even exists, a confounding variable is a third variable Z that has a causal effect upon both X and Y. We can think of this effect in the saying: "Correlation does not imply causation". These variables can hence obscure casual relationships. An example could be when studying how the amount of exercise done by an individual affects their weight, where age could be a confounding variable relating to both. 
+
+# Part 2
+```{r part2, echo=FALSE}
+
+one_sample_t_test_with_null <- function(significance_level, sample_size){
+  norm <- rnorm(sample_size, mean = 0, sd = 1)
+  t_stats <- t.test(norm, mu = 0, conf.level = 1 - significance_level)
+  p_val <- t_stats$p.value
+  
+  return(p_val < significance_level)
+}
+
+n <- 100000
+one_sample_trials <- rep(0, n)
+
+convert.fxn <- function(x){
+  if (x == TRUE){
+    return(1)
+  }
+  return (0)
+}
+
+for (i in 1:n){
+  one_sample_trials[i] <- map_dbl(one_sample_t_test_with_null(0.05, 25), convert.fxn)
+}
+
+mean(one_sample_trials)
+
+sig_vals <- seq(0,1, by = 0.01)
+probability <- rep(0, length(sig_vals))
+
+# problem with this
+for (i in seq_along(sig_vals)){
+  sig <- sig_vals[i]
+  for (i in 1:10000){
+    trials <- rep(0,n)
+    trials[i] <- map_dbl(one_sample_t_test_with_null(sig, 25), convert.fxn)
+    probability[i] <- mean(trials)
+  }
+}
+
+probability_df <- data.frame("Significance_Level" = sig_vals, "Probability" = probability)
+ggplot(probability_df, aes(x = Significance_Level, y = Probability)) + geom_smooth()
+```
+The significance value is the probability of making a Type I error $\alpha$. As alpha / the significance level increases along the x axis, the probability of making a type 1 error proportionately increases alongside it, similar to an x=y graph. The alpha value represents the % chance we are willing to accept that we are wrong when rejecting the null hypothesis, so as the value of alpha tends towards 1, the probability of mistakenly rejecting the null hpyothesis tends towards 100%.
