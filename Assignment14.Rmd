@@ -18,45 +18,58 @@ library(ggplot2)
 
 # Part 2
 ```{r part2, echo=FALSE}
-
+# function that given a sample size and significance level, generates a random gaussian sample of the provided
+# sample size with mean = 0 and variance 1, a t test is performed on the sample against the provided significance level
+# and if a boolean value is returned on whether a significant result by chance was found or not
 one_sample_t_test_with_null <- function(significance_level, sample_size){
-  norm <- rnorm(sample_size, mean = 0, sd = 1)
-  t_stats <- t.test(norm, mu = 0, conf.level = 1 - significance_level)
-  p_val <- t_stats$p.value
+  norm <- rnorm(sample_size, mean = 0, sd = 1) # generate random gaussian distributed sample
+  t_stats <- t.test(norm, mu = 0, conf.level = 1 - significance_level) # perform t test with provided sig level
+  p_val <- t_stats$p.value # extract  p value
   
-  return(p_val < significance_level)
+  return(p_val < significance_level) # return boolean on whether significant result was found or not
 }
 
-n <- 100000
-one_sample_trials <- rep(0, n)
+n <- 100000 # set n to 100000
+one_sample_trials <- rep(0, n) # create a list to store results
 
+# simple function used to convert boolean results to countable measurements of 1 or 0
 convert.fxn <- function(x){
   if (x == TRUE){
-    return(1)
+    return(1) 
   }
   return (0)
 }
 
+# run simulation against significance level to test whether assumptions hold true
 for (i in 1:n){
-  one_sample_trials[i] <- map_dbl(one_sample_t_test_with_null(0.05, 25), convert.fxn)
+  #generate n results for t test using the sample parameters each time but unique instantiations 
+  one_sample_trials[i] <- map_dbl(one_sample_t_test_with_null(0.05, 25), convert.fxn) # map results of function to numeric output
 }
 
+# with the numerically categorised results, get the mean, the mean should reflect the value of the significance level
 mean(one_sample_trials)
 
+#repeat the previous experiment but for every significance level from 0 to 100% in increments of 1% at time
 sig_vals <- seq(0,1, by = 0.01)
 probability <- rep(0, length(sig_vals))
 
-# problem with this
+# for each significance level
 for (i in seq_along(sig_vals)){
-  sig <- sig_vals[i]
-  for (i in 1:10000){
-    trials <- rep(0,n)
-    trials[i] <- map_dbl(one_sample_t_test_with_null(sig, 25), convert.fxn)
-    probability[i] <- mean(trials)
+  sig <- sig_vals[i] # get the significance level
+  trials <- rep(0,1000) # set up container for results
+  for (j in 1:1000){
+    # repeat process as was seen in section earlier
+    trials[j] <- map_dbl(one_sample_t_test_with_null(sig, 25), convert.fxn)
   }
+  # generate probability result for the given significance level
+  probability[i] <- mean(trials)
 }
 
+#now we have results for every significance level that we can plot
 probability_df <- data.frame("Significance_Level" = sig_vals, "Probability" = probability)
-ggplot(probability_df, aes(x = Significance_Level, y = Probability)) + geom_smooth()
+
+# the distribution of probability of type I error against significance value is roughly x = y
+ggplot(probability_df, aes(x = Significance_Level, y = Probability, color="red")) + geom_smooth() + geom_abline(intercept = 0, slope = 1,colour="blue") + theme(legend.position="none")
 ```
-The significance value is the probability of making a Type I error $\alpha$. As alpha / the significance level increases along the x axis, the probability of making a type 1 error proportionately increases alongside it, similar to an x=y graph. The alpha value represents the % chance we are willing to accept that we are wrong when rejecting the null hypothesis, so as the value of alpha tends towards 1, the probability of mistakenly rejecting the null hpyothesis tends towards 100%.
+
+The significance value is the probability of making a Type I error $\alpha$. As alpha / the significance level increases along the x axis, the probability of making a type 1 error proportionately increases alongside it, similar to an x=y graph. The alpha value represents the % chance we are willing to accept that we are wrong when rejecting the null hypothesis, so as the value of alpha tends towards 1, the probability of mistakenly rejecting the null hypothesis tends towards 100%.
